@@ -36,11 +36,11 @@ func main() {
 		optTimeEnd string
 		optQuery   string
 	)
-	flag.StringVar(&optConf, "-conf", "loki.yml", "Loki configuration file")
-	flag.StringVar(&optUserID, "-user-id", "fake", "Loki tenant user id")
-	flag.StringVar(&optTimeBeg, "-time-beg", "", "time range begin time, RFC3339 format")
-	flag.StringVar(&optTimeEnd, "-time-end", "", "time range end time, RFC3339 format")
-	flag.StringVar(&optQuery, "-query", "", "Loki query")
+	flag.StringVar(&optConf, "conf", "loki.yml", "Loki configuration file")
+	flag.StringVar(&optUserID, "user-id", "fake", "Loki tenant user id")
+	flag.StringVar(&optTimeBeg, "time-beg", "", "time range begin time, RFC3339 format")
+	flag.StringVar(&optTimeEnd, "time-end", "", "time range end time, RFC3339 format")
+	flag.StringVar(&optQuery, "query", "", "Loki query")
 	flag.Parse()
 
 	if optTimeBeg == "" {
