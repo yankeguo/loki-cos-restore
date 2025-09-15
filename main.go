@@ -6,10 +6,15 @@ import (
 	"flag"
 	"fmt"
 	stdlog "log"
+	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"reflect"
+	"strconv"
 	"time"
+
+	"github.com/tencentyun/cos-go-sdk-v5"
 
 	"github.com/go-kit/log/level"
 	"github.com/grafana/dskit/log"
@@ -43,6 +48,8 @@ func main() {
 		envTimeBeg = env("RESTORE_TIME_BEG", "")
 		envTimeEnd = env("RESTORE_TIME_END", "")
 		envQuery   = env("RESTORE_QUERY", "")
+		envDays    = env("RESTORE_DAYS", "3")
+		envTier    = env("RESTORE_TIER", "Standard")
 	)
 
 	if envTimeBeg == "" {
@@ -64,6 +71,16 @@ func main() {
 		return
 	}
 
+	days, _ := strconv.Atoi(envDays)
+
+	if days < 1 {
+		days = 1
+	}
+
+	if envTier != "Standard" && envTier != "Bulk" {
+		envTier = "Standard"
+	}
+
 	stdlog.Println("user_id:", envUserID, "time_beg:", envTimeBeg, "time_end:", envTimeEnd, "query:", envQuery)
 
 	var config loki.ConfigWrapper
@@ -82,6 +99,32 @@ func main() {
 	}
 
 	stdlog.Println("configuration initialized")
+
+	awsConfig := config.StorageConfig.AWSStorageConfig
+
+	cosClient := cos.NewClient(&cos.BaseURL{
+		BucketURL:  rg.Must(url.Parse("https://" + awsConfig.BucketNames + "." + awsConfig.Endpoint)),
+		ServiceURL: rg.Must(url.Parse("https://" + awsConfig.Endpoint)),
+	}, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  awsConfig.AccessKeyID,
+			SecretKey: awsConfig.SecretAccessKey.String(),
+		},
+	})
+	cosClient.Conf.RetryOpt.Interval = time.Second / 2
+
+	restoreCos := func(filename string) {
+		if _, err := cosClient.Object.PostRestore(context.Background(), filename, &cos.ObjectRestoreOptions{
+			Days: days,
+			Tier: &cos.CASJobParameters{
+				Tier: envTier,
+			},
+		}); err != nil {
+			stdlog.Printf("%s: %s", filename, err.Error())
+		} else {
+			stdlog.Printf("%s: restoring", filename)
+		}
+	}
 
 	ins := rg.Must(loki.New(config.Config))
 
@@ -111,7 +154,7 @@ func main() {
 			streamHash := fmt.Sprintf("%016x", chunk.ChunkRef.Fingerprint)
 			chunkID := fmt.Sprintf("%x:%x:%x", int64(chunk.ChunkRef.From), int64(chunk.ChunkRef.Through), chunk.ChunkRef.Checksum)
 			filename := path.Join(chunk.UserID, streamHash, chunkID)
-			stdlog.Println(filename)
+			restoreCos(filename)
 		}
 	}
 }
