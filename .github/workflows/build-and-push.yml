@@ -30,7 +30,7 @@ jobs:
       - name: Build Go binary
         run: |
           go mod download
-          go build -o loki-cos-restore -v ./main.go
+          CGO_ENABLED=0 go build -o loki-cos-restore -v ./main.go
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
