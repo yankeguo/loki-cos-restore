@@ -1,46 +1,46 @@
 # loki-cos-restore
 
-一个用于从腾讯云 COS 存储桶中恢复 Loki 归档日志的工具。
+A tool to restore archived objects from COS bucket for Loki.
 
-## 功能概述
+## Overview
 
-`loki-cos-restore` 是一个专门设计用于恢复存储在腾讯云 COS (Cloud Object Storage) 中的 Loki 日志数据的工具。它能够：
+`loki-cos-restore` is a specialized tool designed to restore Loki log data stored in Tencent Cloud COS (Cloud Object Storage). It can:
 
-- 根据指定的时间范围和查询条件恢复归档的日志数据
-- 支持批量恢复操作
-- 集成 Loki 的配置系统，支持标准的 Loki 命令行参数
-- 支持不同的恢复优先级（Standard/Bulk）
+- Restore archived log data based on specified time ranges and query conditions
+- Support batch restore operations
+- Integrate with Loki's configuration system, supporting standard Loki command-line arguments
+- Support different restore priorities (Standard/Bulk)
 
-## 环境变量
+## Environment Variables
 
-工具通过以下环境变量进行配置：
+The tool is configured through the following environment variables:
 
-| 环境变量 | 描述 | 默认值 | 必需 |
-|----------|------|--------|------|
-| `RESTORE_USER_ID` | 用户ID | `fake` | 否 |
-| `RESTORE_TIME_BEG` | 开始时间 (RFC3339格式) | - | 是 |
-| `RESTORE_TIME_END` | 结束时间 (RFC3339格式) | - | 是 |
-| `RESTORE_QUERY` | 日志查询表达式 | - | 是 |
-| `RESTORE_DAYS` | 恢复天数 | `3` | 否 |
-| `RESTORE_TIER` | 恢复优先级 (`Standard` 或 `Bulk`) | `Standard` | 否 |
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `RESTORE_USER_ID` | User ID | `fake` | No |
+| `RESTORE_TIME_BEG` | Start time (RFC3339 format) | - | Yes |
+| `RESTORE_TIME_END` | End time (RFC3339 format) | - | Yes |
+| `RESTORE_QUERY` | Log query expression | - | Yes |
+| `RESTORE_DAYS` | Restore days | `3` | No |
+| `RESTORE_TIER` | Restore priority (`Standard` or `Bulk`) | `Standard` | No |
 
-## Loki 命令行参数
+## Loki Command Line Arguments
 
-除了环境变量外，工具还支持 Loki 标准的命令行参数：
+In addition to environment variables, the tool supports Loki standard command-line arguments:
 
-- `-config.file=/etc/loki/config/config.yaml` - 指定 Loki 配置文件路径
-- `-config.expand-env=true` - 启用配置文件中的环境变量扩展
+- `-config.file=/etc/loki/config/config.yaml` - Specify Loki configuration file path
+- `-config.expand-env=true` - Enable environment variable expansion in configuration files
 
-### 示例命令
+### Example Commands
 
 ```bash
-# 基本使用
+# Basic usage
 RESTORE_TIME_BEG="2024-01-01T00:00:00Z" \
 RESTORE_TIME_END="2024-01-02T00:00:00Z" \
 RESTORE_QUERY='{app="nginx"}' \
 ./loki-cos-restore -config.file=/etc/loki/config.yaml -config.expand-env=true
 
-# 使用自定义恢复天数和优先级
+# Using custom restore days and priority
 RESTORE_TIME_BEG="2024-01-01T00:00:00Z" \
 RESTORE_TIME_END="2024-01-02T00:00:00Z" \
 RESTORE_QUERY='{app="nginx"}' \
@@ -49,9 +49,9 @@ RESTORE_TIER="Bulk" \
 ./loki-cos-restore -config.file=/etc/loki/config.yaml -config.expand-env=true
 ```
 
-## 配置要求
+## Configuration Requirements
 
-工具需要访问 Loki 的存储配置，特别是 AWS S3 兼容的存储配置（用于 COS 访问）。确保在 Loki 配置文件中包含：
+The tool requires access to Loki's storage configuration, particularly AWS S3-compatible storage configuration (for COS access). Ensure your Loki configuration file includes:
 
 ```yaml
 storage_config:
@@ -63,65 +63,69 @@ storage_config:
     secret_access_key: your-secret-key
 ```
 
-## 时间格式
+## Time Format
 
-时间参数必须使用 RFC3339 格式：
+Time parameters must be in RFC3339 format:
 - `2024-01-01T00:00:00Z`
 - `2024-01-01T08:00:00+08:00`
 
-## 查询语法
+## Query Syntax
 
-支持标准的 Loki LogQL 查询语法：
-- `{label="value"}` - 标签匹配
-- `{app="nginx",level="error"}` - 多标签匹配
-- `{app=~"nginx|apache"}` - 正则表达式匹配
+Supports standard Loki LogQL query syntax:
+- `{label="value"}` - Label matching
+- `{app="nginx",level="error"}` - Multi-label matching
+- `{app=~"nginx|apache"}` - Regular expression matching
 
-## 恢复优先级
+## Restore Priority
 
-- `Standard` - 标准优先级，恢复时间较短
-- `Bulk` - 批量优先级，恢复时间较长但成本较低
+- `Standard` - Standard priority, shorter restore time
+- `Bulk` - Bulk priority, longer restore time but lower cost
 
-## 构建和部署
+## Build and Deployment
 
-### 本地构建
+### Local Build
 
 ```bash
 go build -o loki-cos-restore .
 ```
 
-### Docker 构建
+### Docker Build
 
 ```bash
-# 使用提供的构建脚本
+# Using the provided build script
 ./dev.sh
 
-# 或手动构建
+# Or manual build
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o loki-cos-restore .
 docker build -t loki-cos-restore:latest .
 ```
 
-## 日志输出
+## Log Output
 
-工具会输出详细的执行日志，包括：
-- 配置参数确认
-- Loki 实例初始化状态
-- 查询匹配结果数量
-- 每个文件的恢复状态
+The tool outputs detailed execution logs, including:
+- Configuration parameter confirmation
+- Loki instance initialization status
+- Query match results count
+- Restore status for each file
 
-## 错误处理
+## Error Handling
 
-- 缺少必需的环境变量会报错并退出
-- 时间格式错误会报错并退出
-- 查询语法错误会报错并退出
-- 网络或权限问题会在日志中显示具体错误信息
+- Missing required environment variables will error and exit
+- Time format errors will error and exit
+- Query syntax errors will error and exit
+- Network or permission issues will show specific error information in logs
 
-## 注意事项
+## Notes
 
-1. 确保有足够的 COS 权限进行恢复操作
-2. 大批量恢复操作可能需要较长时间
-3. 恢复操作会产生相应的 COS 费用
-4. 建议在非高峰期进行批量恢复操作
+1. Ensure sufficient COS permissions for restore operations
+2. Large batch restore operations may take considerable time
+3. Restore operations will incur corresponding COS charges
+4. Recommend performing batch restore operations during off-peak hours
 
-## 许可证
+## License
 
-[LICENSE](LICENSE) 文件中查看详细信息。
+See [LICENSE](LICENSE) file for details.
+
+## Related Documentation
+
+- [Chinese README](README.zh.md) - 中文文档
