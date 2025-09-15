@@ -74,6 +74,8 @@ func main() {
 		return
 	}
 
+	stdlog.Println("user_id:", envUserID, "time_beg:", envTimeBeg, "time_end:", envTimeEnd, "query:", envQuery)
+
 	var config loki.ConfigWrapper
 	rg.Must0(cfg.DynamicUnmarshal(&config, os.Args[1:], flag.CommandLine))
 	rg.Must0(config.Validate())
@@ -89,15 +91,25 @@ func main() {
 		config.InternalServer.Log = serverCfg.Log
 	}
 
+	stdlog.Println("configuration initialized")
+
 	ins := rg.Must(loki.New(config.Config))
+
+	stdlog.Println("loki instance created")
 
 	expr := rg.Must(syntax.ParseExpr(envQuery))
 
+	stdlog.Println("query expression parsed")
+
 	matchers := rg.Must(syntax.ParseMatchers(envQuery, true))
+
+	stdlog.Println("query matchers parsed")
 
 	predicate := chunk.NewPredicate(matchers, &plan.QueryPlan{
 		AST: expr,
 	})
+
+	stdlog.Println("query predicate created")
 
 	chunksGroup, _ := rg.Must2(ins.Store.GetChunks(
 		context.Background(),
@@ -107,6 +119,8 @@ func main() {
 		predicate,
 		nil,
 	))
+
+	stdlog.Println("chunks groups found:", len(chunksGroup))
 
 	for i, chunks := range chunksGroup {
 		for j, chunk := range chunks {
