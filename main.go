@@ -2,11 +2,12 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"flag"
+	"fmt"
 	stdlog "log"
 	"os"
+	"path"
 	"reflect"
 	"time"
 
@@ -105,9 +106,12 @@ func main() {
 
 	stdlog.Println("chunks groups found:", len(chunksGroup))
 
-	for i, chunks := range chunksGroup {
-		for j, chunk := range chunks {
-			stdlog.Printf(">>>>>>>>>> %d/%d\n%s", i, j, rg.Must(json.MarshalIndent(chunk, "", "  ")))
+	for _, chunks := range chunksGroup {
+		for _, chunk := range chunks {
+			streamHash := fmt.Sprintf("%016x", chunk.ChunkRef.Fingerprint)
+			chunkID := fmt.Sprintf("%x:%x:%x", int64(chunk.ChunkRef.From), int64(chunk.ChunkRef.Through), chunk.ChunkRef.Checksum)
+			filename := path.Join(chunk.UserID, streamHash, chunkID)
+			stdlog.Println(filename)
 		}
 	}
 }
