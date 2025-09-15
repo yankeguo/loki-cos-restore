@@ -14,7 +14,6 @@ import (
 	"github.com/grafana/dskit/log"
 	"github.com/grafana/loki/v3/pkg/logql/syntax"
 	"github.com/grafana/loki/v3/pkg/loki"
-	"github.com/grafana/loki/v3/pkg/querier/plan"
 	loki_runtime "github.com/grafana/loki/v3/pkg/runtime"
 	"github.com/grafana/loki/v3/pkg/storage/chunk"
 	_ "github.com/grafana/loki/v3/pkg/util/build"
@@ -38,16 +37,6 @@ func env(key string, defaultValue string) string {
 }
 
 func main() {
-	var err error
-	defer func() {
-		if err == nil {
-			return
-		}
-		stdlog.Println("exited with error:", err.Error())
-		os.Exit(1)
-	}()
-	defer rg.Guard(&err)
-
 	var (
 		envUserID  = env("RESTORE_USER_ID", "fake")
 		envTimeBeg = env("RESTORE_TIME_BEG", "")
@@ -56,12 +45,12 @@ func main() {
 	)
 
 	if envTimeBeg == "" {
-		err = errors.New("missing -time-beg")
+		rg.Must0(errors.New("missing -time-beg"))
 		return
 	}
 
 	if envTimeEnd == "" {
-		err = errors.New("missing -time-end")
+		rg.Must0(errors.New("missing -time-end"))
 		return
 	}
 
@@ -70,7 +59,7 @@ func main() {
 	timeEnd := rg.Must(time.Parse(time.RFC3339, envTimeEnd))
 
 	if envQuery == "" {
-		err = errors.New("missing -query")
+		rg.Must0(errors.New("missing -query"))
 		return
 	}
 
@@ -97,26 +86,20 @@ func main() {
 
 	stdlog.Println("loki instance created")
 
-	expr := rg.Must(syntax.ParseExpr(envQuery))
+	ins.ModuleManager.InitModuleServices(loki.Store)
 
-	stdlog.Println("query expression parsed")
+	stdlog.Println("loki instance store module initialized")
 
 	matchers := rg.Must(syntax.ParseMatchers(envQuery, true))
 
 	stdlog.Println("query matchers parsed")
-
-	predicate := chunk.NewPredicate(matchers, &plan.QueryPlan{
-		AST: expr,
-	})
-
-	stdlog.Println("query predicate created")
 
 	chunksGroup, _ := rg.Must2(ins.Store.GetChunks(
 		context.Background(),
 		envUserID,
 		model.TimeFromUnix(timeBeg.Unix()),
 		model.TimeFromUnix(timeEnd.Unix()),
-		predicate,
+		chunk.NewPredicate(matchers, nil),
 		nil,
 	))
 
