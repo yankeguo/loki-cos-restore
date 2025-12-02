@@ -15,14 +15,14 @@ A tool to restore archived objects from COS bucket for Loki.
 
 The tool is configured through the following environment variables:
 
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `RESTORE_USER_ID` | User ID | `fake` | No |
-| `RESTORE_TIME_BEG` | Start time (RFC3339 format) | - | Yes |
-| `RESTORE_TIME_END` | End time (RFC3339 format) | - | Yes |
-| `RESTORE_QUERY` | Log query expression | - | Yes |
-| `RESTORE_DAYS` | Restore days | `3` | No |
-| `RESTORE_TIER` | Restore priority (`Standard` or `Bulk`) | `Standard` | No |
+| Variable           | Description                                          | Default    | Required |
+| ------------------ | ---------------------------------------------------- | ---------- | -------- |
+| `RESTORE_USER_ID`  | User ID(s), supports comma-separated multiple values | `fake`     | No       |
+| `RESTORE_TIME_BEG` | Start time (RFC3339 format)                          | -          | Yes      |
+| `RESTORE_TIME_END` | End time (RFC3339 format)                            | -          | Yes      |
+| `RESTORE_QUERY`    | Log query expression                                 | -          | Yes      |
+| `RESTORE_DAYS`     | Restore days                                         | `3`        | No       |
+| `RESTORE_TIER`     | Restore priority (`Standard` or `Bulk`)              | `Standard` | No       |
 
 ## Loki Command Line Arguments
 
@@ -66,12 +66,14 @@ storage_config:
 ## Time Format
 
 Time parameters must be in RFC3339 format:
+
 - `2024-01-01T00:00:00Z`
 - `2024-01-01T08:00:00+08:00`
 
 ## Query Syntax
 
 Supports standard Loki LogQL query syntax:
+
 - `{label="value"}` - Label matching
 - `{app="nginx",level="error"}` - Multi-label matching
 - `{app=~"nginx|apache"}` - Regular expression matching
@@ -103,6 +105,7 @@ docker build -t loki-cos-restore:latest .
 ## Log Output
 
 The tool outputs detailed execution logs, including:
+
 - Configuration parameter confirmation
 - Loki instance initialization status
 - Query match results count

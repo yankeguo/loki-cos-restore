@@ -15,14 +15,14 @@
 
 工具通过以下环境变量进行配置：
 
-| 环境变量 | 描述 | 默认值 | 必需 |
-|----------|------|--------|------|
-| `RESTORE_USER_ID` | 用户ID | `fake` | 否 |
-| `RESTORE_TIME_BEG` | 开始时间 (RFC3339格式) | - | 是 |
-| `RESTORE_TIME_END` | 结束时间 (RFC3339格式) | - | 是 |
-| `RESTORE_QUERY` | 日志查询表达式 | - | 是 |
-| `RESTORE_DAYS` | 恢复天数 | `3` | 否 |
-| `RESTORE_TIER` | 恢复优先级 (`Standard` 或 `Bulk`) | `Standard` | 否 |
+| 环境变量           | 描述                              | 默认值     | 必需 |
+| ------------------ | --------------------------------- | ---------- | ---- |
+| `RESTORE_USER_ID`  | 用户 ID，支持逗号分隔的多个值     | `fake`     | 否   |
+| `RESTORE_TIME_BEG` | 开始时间 (RFC3339 格式)           | -          | 是   |
+| `RESTORE_TIME_END` | 结束时间 (RFC3339 格式)           | -          | 是   |
+| `RESTORE_QUERY`    | 日志查询表达式                    | -          | 是   |
+| `RESTORE_DAYS`     | 恢复天数                          | `3`        | 否   |
+| `RESTORE_TIER`     | 恢复优先级 (`Standard` 或 `Bulk`) | `Standard` | 否   |
 
 ## Loki 命令行参数
 
@@ -66,12 +66,14 @@ storage_config:
 ## 时间格式
 
 时间参数必须使用 RFC3339 格式：
+
 - `2024-01-01T00:00:00Z`
 - `2024-01-01T08:00:00+08:00`
 
 ## 查询语法
 
 支持标准的 Loki LogQL 查询语法：
+
 - `{label="value"}` - 标签匹配
 - `{app="nginx",level="error"}` - 多标签匹配
 - `{app=~"nginx|apache"}` - 正则表达式匹配
@@ -103,6 +105,7 @@ docker build -t loki-cos-restore:latest .
 ## 日志输出
 
 工具会输出详细的执行日志，包括：
+
 - 配置参数确认
 - Loki 实例初始化状态
 - 查询匹配结果数量

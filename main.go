@@ -46,12 +46,24 @@ func main() {
 	ctx := context.Background()
 
 	// Parse and validate environment variables
-	envUserID := env("RESTORE_USER_ID", "fake")
+	envUserIDs := env("RESTORE_USER_ID", "fake")
 	envTimeBeg := env("RESTORE_TIME_BEG", "")
 	envTimeEnd := env("RESTORE_TIME_END", "")
 	envQuery := env("RESTORE_QUERY", "")
 	envDays := env("RESTORE_DAYS", "3")
 	envTier := env("RESTORE_TIER", "Standard")
+
+	// Parse user IDs (comma-separated)
+	var userIDs []string
+	for _, uid := range strings.Split(envUserIDs, ",") {
+		uid = strings.TrimSpace(uid)
+		if uid != "" {
+			userIDs = append(userIDs, uid)
+		}
+	}
+	if len(userIDs) == 0 {
+		rg.Must0(errors.New("no valid user IDs provided"))
+	}
 
 	// Parse time ranges
 	timeBeg := rg.Must(time.Parse(time.RFC3339, envTimeBeg))
@@ -68,7 +80,7 @@ func main() {
 		envTier = "Standard"
 	}
 
-	log.Println("user_id:", envUserID, "time_beg:", envTimeBeg, "time_end:", envTimeEnd, "query:", envQuery)
+	log.Println("user_ids:", userIDs, "time_beg:", envTimeBeg, "time_end:", envTimeEnd, "query:", envQuery)
 
 	// Initialize Loki configuration
 	var config loki.ConfigWrapper
@@ -148,27 +160,29 @@ func main() {
 	matchers := rg.Must(syntax.ParseMatchers(envQuery, true))
 	log.Println("query matchers parsed")
 
-	// Get chunks from Loki store
-	chunksGroup, _ := rg.Must2(ins.Store.GetChunks(
-		ctx,
-		envUserID,
-		model.TimeFromUnix(timeBeg.Unix()),
-		model.TimeFromUnix(timeEnd.Unix()),
-		chunk.NewPredicate(matchers, nil),
-		nil,
-	))
-	log.Println("chunks groups found:", len(chunksGroup))
-
-	// Build filename list from chunks
+	// Get chunks from Loki store for all user IDs
 	var filenames []string
-	for _, chunks := range chunksGroup {
-		for _, chunk := range chunks {
-			filename := path.Join(
-				chunk.UserID,
-				fmt.Sprintf("%016x", chunk.ChunkRef.Fingerprint),
-				fmt.Sprintf("%x:%x:%x", int64(chunk.ChunkRef.From), int64(chunk.ChunkRef.Through), chunk.ChunkRef.Checksum),
-			)
-			filenames = append(filenames, filename)
+	for _, userID := range userIDs {
+		chunksGroup, _ := rg.Must2(ins.Store.GetChunks(
+			ctx,
+			userID,
+			model.TimeFromUnix(timeBeg.Unix()),
+			model.TimeFromUnix(timeEnd.Unix()),
+			chunk.NewPredicate(matchers, nil),
+			nil,
+		))
+		log.Printf("user_id: %s, chunks groups found: %d", userID, len(chunksGroup))
+
+		// Build filename list from chunks
+		for _, chunks := range chunksGroup {
+			for _, chunk := range chunks {
+				filename := path.Join(
+					chunk.UserID,
+					fmt.Sprintf("%016x", chunk.ChunkRef.Fingerprint),
+					fmt.Sprintf("%x:%x:%x", int64(chunk.ChunkRef.From), int64(chunk.ChunkRef.Through), chunk.ChunkRef.Checksum),
+				)
+				filenames = append(filenames, filename)
+			}
 		}
 	}
 	log.Println("found chunk files:", len(filenames))
